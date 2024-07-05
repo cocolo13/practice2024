@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import numpy as np
 # Form implementation generated from reading ui file 'front.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.10
@@ -9,13 +9,19 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import cv2 as cv
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog, QWidget, QMainWindow
 
 
-class Ui_MainWindow(object):
+class Ui_MainWindow(QMainWindow):
     def setupUi(self, MainWindow):
+        self.image = None
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1000, 900)
-        MainWindow.setStyleSheet("background-color: qconicalgradient(cx:0, cy:0, angle:161.127, stop:0 rgba(33, 0, 54, 255), stop:0.258706 rgba(69, 130, 167, 255), stop:0.567164 rgba(126, 226, 244, 255), stop:0.830846 rgba(77, 174, 164, 255), stop:1 rgba(35, 0, 175, 255));")
+        MainWindow.setStyleSheet(
+            "background-color: qconicalgradient(cx:0, cy:0, angle:161.127, stop:0 rgba(33, 0, 54, 255), stop:0.258706 rgba(69, 130, 167, 255), stop:0.567164 rgba(126, 226, 244, 255), stop:0.830846 rgba(77, 174, 164, 255), stop:1 rgba(35, 0, 175, 255));")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
@@ -89,9 +95,105 @@ class Ui_MainWindow(object):
         self.label.setFont(font)
         self.label.setText("")
         self.label.setObjectName("label")
+        self.label_pictures = QtWidgets.QLabel(self.centralwidget)
+        self.label_pictures.setGeometry(QtCore.QRect(0, 0, 1001, 359))
+        self.label_pictures.setFont(font)
+        self.label_pictures.setText("")
         MainWindow.setCentralWidget(self.centralwidget)
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.pushButton.clicked.connect(self.load_pictures)
+        self.pushButton_2.clicked.connect(self.open_camera)
+        self.pushButton_3.clicked.connect(self.view_pictures)
+        self.pushButton_4.clicked.connect(self.view_gray)
+        self.pushButton_5.clicked.connect(lambda: self.show_channel(2))
+        self.pushButton_6.clicked.connect(lambda: self.show_channel(1))
+        self.pushButton_7.clicked.connect(lambda: self.show_channel(0))
+        self.pushButton_8.clicked.connect(self.draw_rectangle)
+        self.pushButton_9.clicked.connect(self.lower_brightness)
+
+    def lower_brightness(self):
+        if self.image is None:
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
+            return
+        value, flag = QInputDialog.getInt(self, "Уменьшить яркость изображения", "Введите значение на которое следует"
+                                                                                 " понизить яркость:", 10, 0, 255)
+        if flag:
+            self.image = np.clip(self.image - value, 0, 255).astype(np.uint8)
+            self.display_image(self.image)
+
+    def draw_rectangle(self):
+        if self.image is None:
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
+        x, flag1 = QInputDialog.getInt(self, "Рисуем прямоугольник", "Введите координату по x:", 0, 0,
+                                       self.image.shape[1])
+        y, flag2 = QInputDialog.getInt(self, "Рисуем прямоугольник", "Введите координату по y:", 0, 0,
+                                       self.image.shape[0])
+        w, flag3 = QInputDialog.getInt(self, "Рисуем прямоугольник", "Введите ширину прямоугольника:", 50, 0,
+                                       self.image.shape[1] - x)
+        h, flag4 = QInputDialog.getInt(self, "Рисуем прямоугольник", "Введите высоту прямоугольника:", 50, 0,
+                                       self.image.shape[0] - y)
+        if flag1 and flag2 and flag3 and flag4:
+            image_with_rectangle = self.image.copy()
+            cv.rectangle(image_with_rectangle, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            self.display_image(image_with_rectangle)
+
+    def show_channel(self, channel):
+        # показать красный, зеленый или синий канал изображения
+        if self.image is None:
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
+            return
+        channel_image = np.zeros_like(self.image)
+        channel_image[:, :, channel] = self.image[:, :, channel]
+        self.display_image(channel_image)
+
+    def display_image(self, image):  # for view gray
+        height, width, channel = image.shape
+        bytes_per_line = 3 * width
+        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format_BGR888)
+        self.label_pictures.setPixmap(QPixmap.fromImage(q_image).scaled(
+            self.label_pictures.width(), self.label.height(), Qt.KeepAspectRatio))
+
+    def view_gray(self):
+        # изображение в оттенках серого
+        if self.image is None:
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
+            return
+        gray_image = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
+        self.display_image(cv.cvtColor(gray_image, cv.COLOR_GRAY2BGR))
+
+    def view_pictures(self):
+        if self.image is None:
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
+        else:
+            height, width, channel = self.image.shape
+            bytes_per_line = 3 * width
+            q_image = QImage(self.image.data, width, height, bytes_per_line, QImage.Format_BGR888)
+            self.label_pictures.setPixmap(QPixmap.fromImage(q_image).scaled(
+                self.label_pictures.width(), self.label_pictures.height(), Qt.KeepAspectRatio))
+
+    def open_camera(self):
+        self.label.setText("Нажмите клавишу 'q', чтобы сделать фото(Расскладка должна быть англ!)")
+        camera = cv.VideoCapture(0)
+        while True:
+            flag, img = camera.read()
+            cv.imshow("Camera", img)
+            if flag:
+                self.image = img
+                self.label.setText("Фото успешно сохранено")
+            if cv.waitKey(1) & 0xFF == ord("q"):
+                break
+
+    def load_pictures(self):
+        file_dialog = QFileDialog(self)
+        file_path, _ = file_dialog.getOpenFileName(self, "Выберите изображение", "", "Image Files (*.png *.jpg *.jpeg)")
+        if file_path:
+            self.image = cv.imread(file_path)
+            if self.image is None:
+                QMessageBox.critical(self, "Ошибка", "Не удалось загрузить изображение.")
+            else:
+                self.label.setText("Изображение успешно загружено")
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Приложение"))
@@ -108,6 +210,7 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
