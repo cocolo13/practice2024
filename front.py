@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2 as cv
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog, QWidget, QMainWindow
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog, QMainWindow
 
 
 class Ui_MainWindow(QMainWindow):
@@ -152,7 +152,7 @@ class Ui_MainWindow(QMainWindow):
         bytes_per_line = 3 * width
         q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format_BGR888)
         self.label_pictures.setPixmap(QPixmap.fromImage(q_image).scaled(
-            self.label_pictures.width(), self.label.height(), Qt.KeepAspectRatio))
+            self.label_pictures.width(), self.label_pictures.height(), Qt.KeepAspectRatio))
 
     def view_gray(self):
         # изображение в оттенках серого
