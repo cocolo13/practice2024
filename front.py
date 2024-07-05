@@ -124,17 +124,13 @@ class Ui_MainWindow(QMainWindow):
 
     def lower_brightness(self):
         if self.image is None:
-            QMessageBox.critical(self, "Ошибка", "Изображение "
-                                                 "еще не загружено.")
+            QMessageBox.critical(self, "Ошибка", "Изображение еще не загружено.")
             return
-        value, flag = QInputDialog.getInt(self, "Уменьшить яркость"
-                                                " изображения Введите"
-                                                " значение на которое "
-                                                "следует понизить яркость:"
-                                                "", 10, 0, 255)
-        if flag:
-            self.image = (np.clip(self.image - value, 0, 255).
-                          astype(np.uint8))
+        value, ok = QInputDialog.getInt(self, "Уменьшить яркость изображения",
+                                        "Введите значение на которое следует"
+                                        " понизить яркость:", 10, 0, 255)
+        if ok:
+            self.image = np.clip(self.image - value, 0, 255).astype(np.uint8)
             self.display_image(self.image)
 
     """Функция, предназначенная для рисования прямоугольник синего цвета с
@@ -214,14 +210,24 @@ class Ui_MainWindow(QMainWindow):
 
     def open_camera(self):
         self.label.setText("Нажмите клавишу 'q', чтобы сделать фото"
-                           "(Расскладка должна быть англ!)")
+                           "(Расскладка должна быть английская!)")
         camera = cv.VideoCapture(0)
         while True:
             flag, img = camera.read()
+            if not flag:
+                QMessageBox.critical(self, "Ошибка", "Ошибка: нет"
+                                                     " подключенных веб-камер. \n"
+                                                     "Варианты решения проблемы: \n"
+                                                     "- проверить правильность"
+                                                     " соединения кабеля камеры; \n"
+                                                     "- проверить драйвера веб-камеры"
+                                                     " (возможно обновить на новые); \n"
+                                                     "- выбрать другой способ загрузки"
+                                                     " изображения.")
             cv.imshow("Camera", img)
             if flag:
                 self.image = img
-                self.label.setText("Фото успешно сохранено")
+                # self.label.setText("Фото успешно сохранено")
             if cv.waitKey(1) & 0xFF == ord("q"):
                 break
 
